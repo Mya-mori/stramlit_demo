@@ -6,6 +6,7 @@ from datetime import datetime
 # from snowflake.snowpark.session import Session
 import tzlocal
 import pandas as pd
+import altair as alt
 import plotly.graph_objects as go
 import snowflake.connector
 import streamlit as st
@@ -71,3 +72,46 @@ st.title("Overview of tables")
 columns = st.columns(2)
 columns[0].metric("Table Count", total_table_count)
 columns[1].metric("Total Table Count Include Deleted", total_table_count_inc_deleted)
+
+# クエリを実行し、結果をPandasのデータフレームに変換する
+monthly_table = """
+SELECT
+    DATE_TRUNC('MONTH', created)::date AS date,
+    COUNT(table_id) AS count
+FROM
+    snowflake.account_usage.tables
+GROUP BY 1
+ORDER BY 1
+"""
+
+monthly_table = pd.read_sql(monthly_table, conn)
+
+st.write(monthly_table)
+
+chart_data = pd.DataFrame(
+    {'date': monthly_table.iloc[:,0],
+    'table_count': monthly_table.iloc[:,0]}
+)
+
+data = {
+        'date': monthly_table.iloc[:,0],
+        'number_of_tables': monthly_table.iloc[:,1]
+        }
+
+daily_table_df = pd.DataFrame(data)
+daily_table_df['date'] = pd.to_datetime(daily_table_df['date'])
+st.line_chart(daily_table_df.set_index('date'))
+
+
+# データのエクスポート
+@st.cache_data
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode('utf-8')
+
+csv = convert_df(daily_table_df)
+if st.button('Export テーブル数の推移'):
+    label="Download data as CSV",
+    data=csv,
+    file_name='large_df.csv',
+    mime='text/csv'
