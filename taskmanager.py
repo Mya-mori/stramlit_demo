@@ -109,9 +109,9 @@ def convert_df(df):
     # IMPORTANT: Cache the conversion to prevent computation on every rerun
     return df.to_csv().encode('utf-8')
 
-csv = convert_df(daily_table_df)
+daily_table_df = convert_df(daily_table_df)
 if st.button('Export テーブル数の推移'):
     label="Download data as CSV",
-    data=csv,
-    file_name='large_df.csv',
+    data=daily_table_df,
+    file_name='count_of_table.csv',
     mime='text/csv'
